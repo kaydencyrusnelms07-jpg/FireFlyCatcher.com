@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Cozy Firefly Catcher – Mobile + PC</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        font-family: "Trebuchet MS", sans-serif;
+        background: radial-gradient(#1a1a2e, #0d0d18);
+        color: #ffd;
+        touch-action: none;
+        user-select: none;
+    }
+
+    #gameCanvas {
+        display: block;
+        margin: 0;
+        background: radial-gradient(circle, #1f2633, #0f141b);
+        border: 4px solid #fdf6e3;
+        box-shadow: 0 0 20px #ffeaa7;
+        cursor: none;
+        touch-action: none;
+    }
+
+    #score, #timer {
+        position: fixed;
+        top: 10px;
+        font-size: 22px;
+        padding: 8px 14px;
+        background: rgba(0,0,0,0.45);
+        border-radius: 10px;
+        border: 1px solid #fff3;
+        z-index: 10;
+    }
+
+    #score { left: 10px; }
+    #timer { right: 10px; }
+
+    #gameOver {
+        position: fixed;
+        top: 40%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.55);
+        padding: 30px 50px;
+        border-radius: 20px;
+        text-align: center;
+        color: #fff8dc;
+        font-size: 28px;
+        display: none;
+        border: 2px solid #ffeaa7;
+        box-shadow: 0 0 20px #fffa;
+    }
+
+    #gameOver button {
+        margin-top: 20px;
+        padding: 12px 24px;
+        font-size: 20px;
+        border: none;
+        border-radius: 10px;
+        background: #ffeaa7;
+        cursor: pointer;
+    }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="score">Score: 0</div>
+<div id="timer">Time: 30</div>
+
+<div id="gameOver">
+    <div id="finalScore"></div>
+    <button onclick="startGame()">Play Again</button>
+</div>
+
+<script>
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let mouseX = 0, mouseY = 0;
+let fireflies = [];
+let score = 0;
+let timeLeft = 30;
+let running = false;
+
+// Fit canvas to screen
+function fitCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.onresize = fitCanvas;
+fitCanvas();
+
+// Firefly generator
+function makeFirefly() {
+    return {
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: 6 + Math.random() * 6,
+        speed: 0.5 + Math.random() * 1.2
+    };
+}
+
+function startGame() {
+    score = 0;
+    timeLeft = 30;
+    fireflies = Array.from({length: 20}, makeFirefly);
+    document.getElementById("score").textContent = "Score: 0";
+    document.getElementById("timer").textContent = "Time: 30";
+    document.getElementById("gameOver").style.display = "none";
+    running = true;
+    gameLoop();
+
+    const countdown = setInterval(() => {
+        if (!running) return clearInterval(countdown);
+        timeLeft--;
+        document.getElementById("timer").textContent = "Time: " + timeLeft;
+        if (timeLeft <= 0) {
+            running = false;
+            endGame();
+            clearInterval(countdown);
+        }
+    }, 1000);
+}
+
+function drawLantern() {
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 25, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255, 240, 180, 0.55)";
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(mouseX, mouseY, 10, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffeaa7";
+    ctx.fill();
+}
+
+function drawFireflies() {
+    fireflies.forEach(f => {
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 180, 0.85)";
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = "#ffee99";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        f.y -= f.speed;
+        if (f.y < -10) {
+            f.y = canvas.height + 10;
+            f.x = Math.random() * canvas.width;
+        }
+
+        let dx = f.x - mouseX;
+        let dy = f.y - mouseY;
+        if (Math.sqrt(dx * dx + dy * dy) < 30) {
+            score++;
+            f.y = canvas.height + 10;
+            f.x = Math.random() * canvas.width;
+            document.getElementById("score").textContent = "Score: " + score;
+        }
+    });
+}
+
+function gameLoop() {
+    if (!running) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawFireflies();
+    drawLantern();
+    requestAnimationFrame(gameLoop);
+}
+
+function endGame() {
+    document.getElementById("finalScore").textContent =
+        "You caught " + score + " fireflies ✨";
+    document.getElementById("gameOver").style.display = "block";
+}
+
+// PC mouse control
+canvas.addEventListener("mousemove", e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+});
+
+// Mobile touch controls
+canvas.addEventListener("touchmove", e => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    mouseX = touch.clientX;
+    mouseY = touch.clientY;
+}, { passive: false });
+
+canvas.addEventListener("touchstart", e => {
+    const touch = e.touches[0];
+    mouseX = touch.clientX;
+    mouseY = touch.clientY;
+}, { passive: false });
+
+startGame();
+</script>
+
+</body>
+</html>
